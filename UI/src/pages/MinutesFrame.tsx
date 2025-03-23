@@ -27,9 +27,9 @@ const DEFAULT_JOB_DATA = {
       text,
       done: false
     })),
-    summary: "blah",
+    summary: "",
     key_points: ["Default key point - upload an audio file to generate real meeting insights."],
-    transcription: "blah",
+    transcription: "",
     speakers: []
   }
 };

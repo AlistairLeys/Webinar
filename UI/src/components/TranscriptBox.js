@@ -14,6 +14,10 @@ const TranscriptBox = ({ className = "", property1 = "Expanded", transcription =
     const [loadError, setLoadError] = useState(null);
     const hasLogged = useRef(false);
     const { meetingData, setMeetingData } = useMeetingContext(); // NEW
+    // At the beginning of your TranscriptBox component, add these logs:
+    console.log("PROPS TRANSCRIPTION:", JSON.stringify(transcription).substring(0, 100));
+    console.log("CONTEXT TRANSCRIPTION:", (meetingData === null || meetingData === void 0 ? void 0 : meetingData.transcription) ?
+        JSON.stringify(meetingData.transcription).substring(0, 100) : "null");
     // New effect: update transcript from meeting context when available
     useEffect(() => {
         if (meetingData && meetingData.transcription && meetingData.transcription.trim() !== "") {
@@ -24,8 +28,20 @@ const TranscriptBox = ({ className = "", property1 = "Expanded", transcription =
             }
         }
     }, [meetingData]);
+    // First, clear localStorage in a useEffect with empty dependencies to ensure it runs once on mount
+    useEffect(() => {
+        console.log("Clearing localStorage cache on mount");
+        localStorage.removeItem('lastJobData');
+        localStorage.removeItem('lastJobId');
+    }, []);
     // Enhanced useEffect for better error handling
     useEffect(() => {
+        // If we have valid transcription from props, use it and don't attempt to fetch or use localStorage
+        if (transcription && transcription.trim() !== '') {
+            console.log("TranscriptBox: Using transcription directly from props");
+            setTranscript(transcription);
+            return; // Exit early - don't fetch or use localStorage
+        }
         if (jobId) {
             let pollInterval;
             const fetchTranscript = async () => {
@@ -47,41 +63,56 @@ const TranscriptBox = ({ className = "", property1 = "Expanded", transcription =
                         clearInterval(pollInterval);
                     }
                     else {
-                        // Fallback: check localStorage for stored job data
-                        const localData = getLastJobData();
-                        if (localData.jobId === jobId &&
-                            localData.jobData &&
-                            localData.jobData.minutes &&
-                            localData.jobData.minutes.transcription &&
-                            localData.jobData.minutes.transcription.trim().length > 0) {
-                            console.log(`TranscriptBox: Using transcript from localStorage for job ${jobId}`);
-                            setTranscript(localData.jobData.minutes.transcription);
-                            setLoadError(null); // Clear error if transcript exists
-                        }
-                        else {
-                            setLoadError('Job is still processing. Please wait...');
+                        // ONLY use localStorage if we don't already have a valid transcript
+                        if (!transcript || transcript.trim() === '') {
+                            const localData = getLastJobData();
+                            if (localData.jobId === jobId &&
+                                localData.jobData &&
+                                localData.jobData.minutes &&
+                                localData.jobData.minutes.transcription &&
+                                localData.jobData.minutes.transcription.trim().length > 0) {
+                                console.log(`TranscriptBox: Using transcript from localStorage for job ${jobId}`);
+                                setTranscript(localData.jobData.minutes.transcription);
+                                setLoadError(null);
+                            }
+                            else {
+                                setLoadError('Job is still processing. Please wait...');
+                            }
                         }
                     }
                 }
                 catch (error) {
                     console.error("Failed to fetch transcript data:", error);
-                    setLoadError('Failed to load the transcript. Please try again.');
+                    // If we have valid transcription from props, use it and don't use localStorage
+                    if (transcription && transcription.trim() !== '') {
+                        console.log("TranscriptBox: Using provided transcription from props after fetch error");
+                        setTranscript(transcription);
+                        setLoadError(null);
+                    }
+                    else {
+                        setLoadError('Failed to load the transcript. Please try again.');
+                    }
                 }
                 finally {
                     setIsLoading(false);
                 }
             };
-            fetchTranscript();
-            pollInterval = setInterval(fetchTranscript, 10000);
+            // Only fetch if we don't have a transcript already
+            if (!transcript || transcript.trim() === '') {
+                fetchTranscript();
+                pollInterval = setInterval(fetchTranscript, 10000);
+            }
             return () => clearInterval(pollInterval);
         }
-    }, [jobId]); // removed transcript from dependency array
+    }, [jobId, transcription]); // Add transcription as dependency
     // Compute transcript to display: from context if available, else local state
-    const displayTranscript = meetingData && meetingData.transcription.trim() !== ""
+    const displayTranscript = meetingData && meetingData.transcription && meetingData.transcription.trim() !== ""
         ? meetingData.transcription
         : transcript;
-    console.log("Rendering TranscriptBox with transcript:", displayTranscript);
-    return (_jsx("div", { className: [styles.transcriptBox, className].join(" "), "data-property1": property1, children: _jsxs("div", { className: styles.transcriptFrame, children: [_jsxs("div", { className: styles.header, children: [_jsx("div", { className: styles.chatTitle1, children: _jsx("h3", { className: styles.chatTitle, children: "transcript" }) }), _jsx("div", { className: styles.buttonCollapseContainer, children: _jsx(CollapseExpandButton, { onClick: () => setCollapsed(!collapsed), isCollapsed: collapsed }) })] }), _jsx("div", { className: [styles.transcript, collapsed ? styles.collapsed : ''].join(" "), "data-acc-group": true, children: _jsx(CSSTransition, { in: !collapsed, timeout: 300, classNames: {
+    // Right after your displayTranscript calculation, add:
+    console.log("FINAL DISPLAY TRANSCRIPTION:", displayTranscript ? JSON.stringify(displayTranscript).substring(0, 100) : "null");
+    console.log("TranscriptBox rendering with transcript:", displayTranscript ? displayTranscript.substring(0, 50) + "..." : "none");
+    return (_jsx("div", { className: [styles.transcriptBox, className].join(" "), "data-property1": property1, children: _jsxs("div", { className: styles.transcriptFrame, children: [_jsxs("div", { className: styles.header, children: [_jsx("div", { className: styles.chatTitle1, children: _jsx("span", { className: styles.chatTitle, children: "Transcript" }) }), _jsx("div", { className: styles.buttonCollapseContainer, children: _jsx(CollapseExpandButton, { onClick: () => setCollapsed(!collapsed), isCollapsed: collapsed }) })] }), _jsx("div", { className: [styles.transcript, collapsed ? styles.collapsed : ''].join(" "), "data-acc-group": true, children: _jsx(CSSTransition, { in: !collapsed, timeout: 300, classNames: {
                             enter: styles.collapseEnter,
                             enterActive: styles.collapseEnterActive,
                             exit: styles.collapseExit,

@@ -15,6 +15,13 @@ const MinutesFrame = () => {
     const [jobData, setJobData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true); // Start with loading state
+    const [chatCollapsed, setChatCollapsed] = useState(true);
+    // Add this function to handle new job creation
+    const handleNewJobCreated = (jobId) => {
+        setActiveJobId(jobId);
+        setLoading(true);
+        // Fetch data for new job or other handling as needed
+    };
     // Always initialize with job data - this runs immediately on component mount
     useEffect(() => {
         console.log("MinutesFrame - Initializing component");
@@ -39,6 +46,9 @@ const MinutesFrame = () => {
                 catch (e) {
                     console.error('Error storing job data in localStorage:', e);
                 }
+            }, (error) => {
+                console.error('Processing error:', error);
+                setError('An error occurred while processing the job.');
             });
             return cleanup;
         }

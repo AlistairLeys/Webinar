@@ -16,6 +16,14 @@ const MinutesFrame: FunctionComponent = () => {
   const [jobData, setJobData] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);  // Start with loading state
+  const [chatCollapsed, setChatCollapsed] = useState(true);
+
+  // Add this function to handle new job creation
+  const handleNewJobCreated = (jobId: string) => {
+    setActiveJobId(jobId);
+    setLoading(true);
+    // Fetch data for new job or other handling as needed
+  };
 
   // Always initialize with job data - this runs immediately on component mount
   useEffect(() => {
@@ -47,6 +55,10 @@ const MinutesFrame: FunctionComponent = () => {
           } catch (e) {
             console.error('Error storing job data in localStorage:', e);
           }
+        },
+        (error) => {
+          console.error('Processing error:', error);
+          setError('An error occurred while processing the job.');
         }
       );
       

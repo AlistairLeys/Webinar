@@ -67,7 +67,7 @@ export const MeetingProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [meetingData, activeJobId]);
 
   const connectToSocket = useCallback(() => {
-    const s = getSocket();
+    const s = getSocket() as any; // Add type assertion
     if (!s) {
       console.error("Failed to connect to socket");
       return;
@@ -82,7 +82,7 @@ export const MeetingProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
     
     return () => {
-      const currentSocket = getSocket();
+      const currentSocket = getSocket() as any; // Add type assertion
       if (currentSocket) {
         currentSocket.off('processing_complete');
       }

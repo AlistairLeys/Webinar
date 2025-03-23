@@ -51,7 +51,7 @@ export const MeetingProvider = ({ children }) => {
         }
     }, [meetingData, activeJobId]);
     const connectToSocket = useCallback(() => {
-        const s = getSocket();
+        const s = getSocket(); // Add type assertion
         if (!s) {
             console.error("Failed to connect to socket");
             return;
@@ -64,7 +64,7 @@ export const MeetingProvider = ({ children }) => {
             }
         });
         return () => {
-            const currentSocket = getSocket();
+            const currentSocket = getSocket(); // Add type assertion
             if (currentSocket) {
                 currentSocket.off('processing_complete');
             }

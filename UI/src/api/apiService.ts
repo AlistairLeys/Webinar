@@ -190,7 +190,12 @@ export function getLastJobData(): { jobId: string; jobData: JobResponse } {
 /**
  * Join a specific job for real-time updates with improved error handling
  */
-export function joinJobRoom(jobId: string, onUpdate?: (data: any) => void, onComplete?: (data: any) => void, onError?: (error: string) => void) {
+export function joinJobRoom(
+  jobId: string,
+  onUpdate: (data: any) => void,
+  onComplete: (data: any) => void,
+  onError?: (error: any) => void
+) {
   if (isGitHubPages) {
     console.log('GitHub Pages mode: Mock job room join');
     
@@ -214,49 +219,24 @@ export function joinJobRoom(jobId: string, onUpdate?: (data: any) => void, onCom
     return () => {};
   }
 
-  const s = getSocket();
-  if (!s) {
-    console.error("Cannot join job room: Socket connection not established");
-    return () => {};
-  }
+  // Add type assertion to socket
+  const s = getSocket() as any; // Fix typing issues with TypeScript
   
-  // Clean up any existing listeners to prevent duplicates
+  // Now TypeScript will allow these operations
   s.off('processing_update');
   s.off('processing_complete');
   s.off('processing_error');
   
-  // Set up new listeners
-  if (onUpdate) {
-    s.on('processing_update', (data: any) => { 
-      if (data && data.job_id === jobId) onUpdate(data); 
-    });
-  }
+  s.on('processing_update', onUpdate);
+  s.on('processing_complete', onComplete);
+  s.on('processing_error', onError);
   
-  if (onComplete) {
-    s.on('processing_complete', (data: any) => { 
-      if (data && data.job_id === jobId) {
-        console.log('Received processing_complete for job:', jobId, data);
-        onComplete(data); 
-      }
-    });
-  }
-  
-  if (onError) {
-    s.on('processing_error', (data: any) => {
-      if (data && data.job_id === jobId) onError(data.error || 'Unknown error');
-    });
-  }
-  
-  // Join the room
-  console.log('Joining job room:', jobId);
   s.emit('rejoin_job', { job_id: jobId });
   
-  // Return cleanup function
   return () => {
-    // Get fresh socket reference in case it was reconnected
-    const currentSocket = getSocket();
+    // Cleanup function
+    const currentSocket = getSocket() as any; // Add type assertion here too
     if (currentSocket) {
-      console.log('Leaving job room:', jobId);
       currentSocket.off('processing_update');
       currentSocket.off('processing_complete');
       currentSocket.off('processing_error');
